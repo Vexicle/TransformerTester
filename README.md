@@ -1,4 +1,6 @@
 # TransformerTester
 Engineering project for EESW
 
-Put whatever you want here
+## todo:
+### serial function
+actually catch the commands
