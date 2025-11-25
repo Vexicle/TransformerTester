@@ -1,4 +1,5 @@
 // TTL implementation prototype
+#include <Arduino_FreeRTOS.h> // double include?
 #include "serial.h"
 
 // defaults
@@ -33,21 +34,29 @@ Command commands[] = {
   {"test", "Execute this command to test the IC"},
 };
 
-void serialMain(void *parameter) { // freeRTOS demands a parameter
-  while (!Serial){
-    if (verboseLogging==true) {Serial.println("serial connected!");}
+void serialMain(void *parameter) {
+  while (true) {
+    if (Serial.available()) {
+      String input = Serial.readStringUntil('\n'); input.trim();  // clean whitespace
 
-    if (Serial.read() == "help") {
-      help();
-    } else if (Serial.read() == "set ") { // <-- heads up there is a space here
-      //  oh no
-      /*  scan for set, go past the space after "set "get the word by going through each letter until we get a space?
-       *  then check whether the letters correlate to a function.
-       *  check if the function is an int or bool.
-       *  if bool, scan the word till we get a \n? might be wrong
-       *  if int, count letters until we get \n
-       */
+      if (input == "help") {
+        help();
+      } else if (input.startsWith("set ")) { // set <key> <value>
+        String arg = input.substring(4);
+        int seperator = arg.indexOf(' ');
+        if (seperator < 0) {
+          Serial.println("Usage: <setting> <value>");
+        }
+        String key = arg.substring(0, seperator);
+        String value = arg.substring(seperator + 1);
+        // todo: go through settings table names, if key matches a function on the list, change the corresponding value
+        /* optimization idea: could scan first 3 characters of functions to check whether they'd match, then check if key is actually a real setting
+         * might save on some memory, or slight speed increase
+         * first 3 characters lookup table needs to be automatically generated
+         */
+      }
     }
+    vTaskDelay(1);  // yield
   }
 }
 
