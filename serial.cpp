@@ -10,7 +10,7 @@ int testCountInt = 3;
 
 enum SettingType {BOOL,INT};
 
-struct Command {
+struct Command { // how do we 
   const char* name;
   const char* description;
 };
@@ -22,7 +22,7 @@ struct Setting {
   const char* description;
 };
 
-// dynamic settings and commands list
+// dynamic settings list
 Setting settings[] = {
   {"fastmode", BOOL, &fastModeEnabled, "No clue"},
   {"verbose",  BOOL, &verboseLogging, "Verbose debug logging"},
@@ -32,36 +32,28 @@ Setting settings[] = {
 
 Command commands[] = {
   {"test", "Execute this command to test the IC"},
+  {"help", "Show this help table"},
+  {"set", "Change the settings by 'set <setting> <value>'"}
 };
 
-void serialMain(void *parameter) {
+void serial::serialMain(void *parameter) {
   while (true) {
     if (Serial.available()) {
       String input = Serial.readStringUntil('\n'); input.trim();  // clean whitespace
+      // "set" is a command, and so is "help"; generate lookup table?
 
       if (input == "help") {
-        help();
-      } else if (input.startsWith("set ")) { // set <key> <value>
-        String arg = input.substring(4);
-        int seperator = arg.indexOf(' ');
-        if (seperator < 0) {
-          Serial.println("Usage: <setting> <value>");
-        }
-        String key = arg.substring(0, seperator);
-        String value = arg.substring(seperator + 1);
-        // todo: go through settings table names, if key matches a function on the list, change the corresponding value
-        /* optimization idea: could scan first 3 characters of functions to check whether they'd match, then check if key is actually a real setting
-         * might save on some memory, or slight speed increase
-         * first 3 characters lookup table needs to be automatically generated
-         */
-      }
+        serial::help();
+      } 
+      else if (input == "set " ){
+        serial::set(input);
+      }// generate an else if based on the commands; find a way to link functions to commands in struct
     }
     vTaskDelay(1);  // yield
   }
 }
 
-
-void help() {
+void serial::help() {
   Serial.println("--- Commands ---");
   for (size_t i = 0; i < sizeof(commands)/sizeof(Command); i++) {
     Serial.println(commands[i].name);
@@ -89,18 +81,33 @@ void help() {
   }
 }
 
-void fastMode(bool state) { fastModeEnabled = state;
+void serial::set(String input) {
+  String arg = input.substring(4);
+  int seperator = arg.indexOf(' ');
+  if (seperator < 0) {
+    Serial.println("Usage: <setting> <value>");
+  }
+  String key = arg.substring(0, seperator);
+  String value = arg.substring(seperator + 1);
+  // todo: go through settings table names, if key matches a function on the list, change the corresponding value
+  /* optimization idea: could scan first 3 characters of functions to check whether they'd match, then check if key is actually a real setting
+   * might save on some memory, or slight speed increase
+   * first 3 characters lookup table needs to be automatically generated
+   */
+}
+
+void serial::fastMode(bool state) { fastModeEnabled = state;
   // do tests faster
 }
 
-void verbose(bool state) { verboseLogging = state;
+void serial::verbose(bool state) { verboseLogging = state;
   // all we have to do is just check if this is enabled in the main loop
 }
 
-void manualMode(bool state) { manualModeEnabled = state;
+void serial::manualMode(bool state) { manualModeEnabled = state;
   // command test only; or button press
 }
 
-void testCount(int value) { testCountInt = value;
+void serial::testCount(int value) { testCountInt = value;
   // do multiple tests; check if any of them failed; could false positive though
 }

@@ -2,17 +2,24 @@
 
 #include <Arduino.h>
 
-// Settings
-extern bool fastModeEnabled;
-extern bool verboseLogging;
-extern bool manualModeEnabled;
-extern int testCountInt;
+class serial { // class conflict?
+  public:
+  // Settings
+  static bool fastModeEnabled;
+  static bool verboseLogging;
+  static bool manualModeEnabled;
+  static int testCountInt;
 
-// Functions
-extern void serialMain(void *parameter);
+  // Functions
+  static void serial::serialMain(void *parameter);
 
-void help();
-void fastMode(bool state);
-void verbose(bool state);
-void manualMode(bool state);
-void testCount(int value);
+  // Commands
+  static void serial::help();
+  static void serial::set(String input);
+
+  // Settings
+  static void serial::fastMode(bool state);
+  static void serial::verbose(bool state);
+  static void serial::manualMode(bool state);
+  static void serial::testCount(int value);
+};
