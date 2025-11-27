@@ -1,19 +1,21 @@
 // TTL implementation prototype
 #include <Arduino_FreeRTOS.h> // double include?
 #include "serial.h"
+#include "compute.h"
 
 // defaults
 bool fastModeEnabled = false;
 bool verboseLogging = false;
 bool manualModeEnabled = false;
 int testCountInt = 3;
-bool watchdogEnabled = false;
 
 enum SettingType {BOOL,INT};
 
-struct Command { // how do we 
+struct Command {
   const char* name;
+  void (*function)(const String&); // nice
   const char* description;
+  const char* usage;
 };
 
 struct Setting {
@@ -24,32 +26,64 @@ struct Setting {
 };
 
 // dynamic settings list
-Setting settings[] = {
+Setting settings[] = { // setting, datatype, variable, description
   {"fastmode", BOOL, &fastModeEnabled, "No clue"},
   {"verbose",  BOOL, &verboseLogging, "Verbose debug logging"},
   {"manual",   BOOL, &manualModeEnabled, "Manually test the IC via command"},
   {"testcount", INT, &testCountInt, "Number of tests to run per IC"}, // might be useless
-  {"watchdog", BOOL, &watchdogEnabled, "Start daemon to check system health"},
 };
 
-Command commands[] = {
-  {"test", "Execute this command to test the IC"},
-  {"help", "Show this help table"},
-  {"set", "Change the settings by 'set <setting> <value>'"}
+Command commands[] = { // command, function, description, usage
+  {"test", serial::placeholder, "Execute this command to test the IC", "test"}, // change with real function
+  {"help", serial::help, "Show this help table", "help"},
+  {"set", serial::set, "Change the settings of the tester", "set <setting> <value>"},
 };
+const int commandCount = sizeof(commands) / sizeof(commands[0]);
 
 void serial::serialMain(void *parameter) {
   while (true) {
     if (Serial.available()) {
       String input = Serial.readStringUntil('\n'); input.trim();  // clean whitespace
-      // "set" is a command, and so is "help"; generate lookup table?
+      if (input.length() == 0)
+        continue;
 
-      if (input == "help") {
-        serial::help();
-      } 
-      else if (input == "set " ){
-        serial::set(input);
-      }// generate an else if based on the commands; find a way to link functions to commands in struct
+        int firstSpace = input.indexOf(' ');
+        String cmd = (firstSpace == -1) ? input : input.substring(0, firstSpace);
+
+        bool matched = false;
+
+        for (int i = 0; i < commandCount; i++) {
+          if (cmd.equalsIgnoreCase(commands[i].name)) {
+            commands[i].function(input);     // execute command
+            matched = true;
+            break;
+          }
+        }
+      if (matched == false) { // autocomplete typos
+        int assumedDist = 0xff; // any big number
+        String assumedCmd = "";
+
+        for (int i = 0; i < commandCount; i++) {
+          int d = compute::levenshtein(cmd, commands[i].name);
+            if (d < assumedDist) {
+              assumedDist = d;
+              assumedCmd = commands[i].name;
+            }
+          }
+
+          if (assumedDist <= 2) {   // format off linux, "command not found: x, did you mean xy?"
+            Serial.print("command not found: ");
+            Serial.print(cmd);
+            Serial.print(", did you mean: ");
+            Serial.print(assumedCmd);
+            Serial.println("?");
+          } else { // "command not found: x, type 'help' for a list of commands."
+            Serial.print("command not found: ");
+            Serial.print(cmd);
+            Serial.print(", type 'help' for a list of commands.");
+          }
+
+      }
     }
     vTaskDelay(1);  // yield
   }
@@ -98,18 +132,4 @@ void serial::set(String input) {
    */
 }
 
-void serial::fastMode(bool state) { fastModeEnabled = state;
-  // do tests faster
-}
-
-void serial::verbose(bool state) { verboseLogging = state;
-  // all we have to do is just check if this is enabled in the main loop
-}
-
-void serial::manualMode(bool state) { manualModeEnabled = state;
-  // command test only; or button press
-}
-
-void serial::testCount(int value) { testCountInt = value;
-  // do multiple tests; check if any of them failed; could false positive though
-}
+void serial::placeholder(const String& input) {} // function placeholder

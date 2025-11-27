@@ -17,9 +17,5 @@ class serial { // class conflict?
   static void serial::help();
   static void serial::set(String input);
 
-  // Settings
-  static void serial::fastMode(bool state);
-  static void serial::verbose(bool state);
-  static void serial::manualMode(bool state);
-  static void serial::testCount(int value);
+  static void serial::placeholder(const String& input);
 };

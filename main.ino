@@ -11,10 +11,11 @@
 
 #include "init.h"
 #include "serial.h"
+#include "compute.h"
 
 TaskHandle_t SerialHandle = NULL;
 
-void setup() {
+void setup_2() {
   Serial.begin(115200);
   init::initialize();
 
@@ -24,6 +25,6 @@ void setup() {
   vTaskStartScheduler();
 }
 
-void loop() {
+void loop_2() {
   // use FreeRTOS tasks
 }
