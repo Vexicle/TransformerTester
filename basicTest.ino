@@ -1,12 +1,14 @@
+//define pin numbers for different wired connections
+//Code will write to transformerWritePinx, and expect a response from transformerReadPinx
 #define transformerWritePin1 1
 #define transformerWritePin2 1
 #define transformerWritePin3 1
 #define transformerReadPin1 1
 #define transformerReadPin2 1
 #define transformerReadPin3 1
+//if power is recieved from this pin, assume button is pressed
 #define buttonReadPin 1
 void setup() {
-  // put your setup code here, to run once:
   //setting modes for transformer testing read and write pins
   pinMode(transformerWritePin1, OUTPUT);
   pinMode(transformerWritePin2, OUTPUT);
@@ -18,6 +20,7 @@ void setup() {
   pinMode(buttonReadPin, INPUT);
   Serial.begin(9600);
 }
+//check if button is pressed
 bool isButtonPressed(int pinNumber=buttonReadPin){
   bool result = digitalRead(pinNumber);
   if(result){
@@ -27,6 +30,7 @@ bool isButtonPressed(int pinNumber=buttonReadPin){
     return(0);
     }
 }
+//test continuity between pins, returns a bool array with results for each pair
 bool* testTransformerPins(//fairly limited/static way of testing, but simple, might be worth returning full results for all pin tests to check for any faulty shorts
 uint8_t wpin1 = transformerWritePin1,
 uint8_t wpin2 = transformerWritePin2,
@@ -53,6 +57,7 @@ uint8_t rpin3 = transformerReadPin3){
   Serial.println(results[0]);
   return (results);
 }
+//takes a bool array like the one from testTransformerPins, and basically just acts as an and gate, outputting true if all are true, otherwise outputting false
 bool checkPairs( bool* results=NULL){//in the same vein as testTransformerPins, this one could do with a little more flexability
   if (results==NULL){Serial.println("pin reading results not passed in correctly to checkPairs");}
 //check if all have continuity
@@ -62,6 +67,7 @@ bool checkPairs( bool* results=NULL){//in the same vein as testTransformerPins, 
   else{return(false);}
 
 }
+//checks if button is pressed, if so tries to test the transformer continuity
 bool checkManualTest(bool logging=1){
   Serial.println("Checking for button press");
   if (isButtonPressed()){
