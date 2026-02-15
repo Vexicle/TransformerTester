@@ -1,83 +1,109 @@
-//define pin numbers for different wired connections
-//Code will write to transformerWritePinx, and expect a response from transformerReadPinx
-#define transformerWritePin1 1
-#define transformerWritePin2 1
-#define transformerWritePin3 1
-#define transformerReadPin1 1
-#define transformerReadPin2 1
-#define transformerReadPin3 1
-//if power is recieved from this pin, assume button is pressed
-#define buttonReadPin 1
-void setup() {
-  //setting modes for transformer testing read and write pins
-  pinMode(transformerWritePin1, OUTPUT);
-  pinMode(transformerWritePin2, OUTPUT);
-  pinMode(transformerWritePin3, OUTPUT);
-  pinMode(transformerReadPin1, INPUT);
-  pinMode(transformerReadPin2, INPUT);
-  pinMode(transformerReadPin3, INPUT);
-  //pin that can be digitalread to get signal if button is pressed
-  pinMode(buttonReadPin, INPUT);
-  Serial.begin(9600);
-}
-//check if button is pressed
-bool isButtonPressed(int pinNumber=buttonReadPin){
-  bool result = digitalRead(pinNumber);
-  if(result){
-    return(1);
-  } 
-  else{
-    return(0);
-    }
-}
-//test continuity between pins, returns a bool array with results for each pair
-bool* testTransformerPins(//fairly limited/static way of testing, but simple, might be worth returning full results for all pin tests to check for any faulty shorts
-uint8_t wpin1 = transformerWritePin1,
-uint8_t wpin2 = transformerWritePin2,
-uint8_t wpin3 = transformerWritePin3,
-uint8_t rpin1 = transformerReadPin1,
-uint8_t rpin2 = transformerReadPin2,
-uint8_t rpin3 = transformerReadPin3){
-  static bool results[]={0,0,0};
-  //test pair 1
-  digitalWrite(wpin1, HIGH);
-  delay(10);
-  if (digitalRead(rpin1)){results[0]=1;}
-  else{results[0]=0;}
-  //test pin 2
-  digitalWrite(wpin2, HIGH);
-  delay(10);
-  if (digitalRead(rpin2)){results[1]=1;}
-  else{results[1]=0;}
-  //test pin 3
-  digitalWrite(wpin3, HIGH);
-  delay(10);
-  if (digitalRead(rpin3)){results[2]=1;}
-  else{results[2]=0;}
-  Serial.println(results[0]);
-  return (results);
-}
-//takes a bool array like the one from testTransformerPins, and basically just acts as an and gate, outputting true if all are true, otherwise outputting false
-bool checkPairs( bool* results=NULL){//in the same vein as testTransformerPins, this one could do with a little more flexability
-  if (results==NULL){Serial.println("pin reading results not passed in correctly to checkPairs");}
-//check if all have continuity
-  if(results[0]&&results[1]&&results[2]){
-    Serial.println("pass");
-    return(true);}
-  else{return(false);}
+/*  List of tests:
+  minimum:
+    primary:
+    1-3
+    secondary:
+    4-6
+    iso test:
+    1-4
+    3 tests altogether
+    1,3,4,6
 
-}
-//checks if button is pressed, if so tries to test the transformer continuity
-bool checkManualTest(bool logging=1){
-  Serial.println("Checking for button press");
-  if (isButtonPressed()){
-    Serial.println("Button press detected, testing continuity");
-    checkPairs(testTransformerPins());
+  extensive:
+    primary winding
+    1-3
+    1-2
+    2-3
+    secondary winding
+    4-6
+    4-5
+    5-6
+    NO continuity between 
+    1 - 4
+    1 - 5
+    1 - 6
+    2 - 4
+    2 - 5
+    2 - 6
+    3 - 4
+    3 - 5
+    3 - 6
+    15 tests altogether
+
+  input pins:
+  1,2,3,4,5
+  output pins:
+  3,2,4,5,6
+*/
+
+#include <Adafruit_NeoPixel.h>
+#include <FastLED.h>
+#define NUM_LEDS 1
+CRGB leds[NUM_LEDS];
+
+// pins in p# format
+#define p1 39
+//#define p2
+#define p3 38
+#define p4 36
+//#define p5
+#define p6 37
+
+// tests in t# format
+bool t1 = 0;
+bool t2 = 0;
+bool t3 = 1; 
+// t1,t2,t3 need to be in 1,1,0 to ensure all pins work
+
+//1-3,1-4,3-6
+// need to change 3 from output to input
+
+void setup() {
+  FastLED.addLeds<WS2812B, 48, GRB>(leds, NUM_LEDS);
+  FastLED.setBrightness(255);
+  Serial.begin(115200);
+  delay(100);
+  // tri-state all pins first
+  pinMode(p1, INPUT);
+  pinMode(p3, INPUT);
+  pinMode(p4, INPUT);
+  pinMode(p6, INPUT);
+
+  // Test 1: 1-3
+  pinMode(p1, OUTPUT); digitalWrite(p1, LOW);
+  pinMode(p3, INPUT_PULLUP); 
+  delay(2);
+  bool t1 = !digitalRead(p3);
+  Serial.println(t1);
+  pinMode(p1, INPUT); // release pin
+
+  // Test 2: 1-4
+  pinMode(p1, OUTPUT); digitalWrite(p1, LOW);
+  pinMode(p4, INPUT_PULLUP); 
+  delay(2);
+  bool t2 = !digitalRead(p4);
+  Serial.println(t2);
+  pinMode(p1, INPUT); // release pin
+
+  // Test 3: 3-6
+  pinMode(p3, OUTPUT); digitalWrite(p3, LOW);
+  pinMode(p6, INPUT_PULLUP); 
+  delay(2);
+  bool t3 = digitalRead(p6);
+  Serial.println(t3);
+  pinMode(p3, INPUT); // release pin
+
+  leds[0] = CRGB(0, 255, 0);
+
+  if ((t1==1) && (t2==1)) {
+    if (t3==0) {
+    leds[0] = CRGB(0, 255, 0);
+    FastLED.show();
+    Serial.println("pass");
+    }
   }
-  else{Serial.println("No button press detected");}
 }
+
 void loop() {
-  // put your main code here, to run repeatedly:
-  checkManualTest();
- delay(100);
+  // not using to reduce power issues
 }
