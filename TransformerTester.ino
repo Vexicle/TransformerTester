@@ -35,8 +35,9 @@
   output pins:
   3,2,4,5,6
 */
+#include <string>
+#include <vector>
 
-#include <Adafruit_NeoPixel.h>
 #include <FastLED.h>
 #define NUM_LEDS 1
 CRGB leds[NUM_LEDS];
@@ -55,8 +56,7 @@ bool t2 = 0;
 bool t3 = 1; 
 // t1,t2,t3 need to be in 1,1,0 to ensure all pins work
 
-//1-3,1-4,3-6
-// need to change 3 from output to input
+std::vector<std::string> failed;
 
 void setup() {
   FastLED.addLeds<WS2812B, 48, GRB>(leds, NUM_LEDS);
@@ -76,6 +76,7 @@ void setup() {
   bool t1 = !digitalRead(p3);
   Serial.println(t1);
   pinMode(p1, INPUT); // release pin
+  if (t1 == 0) {failed.push_back("1-3");};
 
   // Test 2: 1-4
   pinMode(p1, OUTPUT); digitalWrite(p1, LOW);
@@ -84,6 +85,7 @@ void setup() {
   bool t2 = !digitalRead(p4);
   Serial.println(t2);
   pinMode(p1, INPUT); // release pin
+  if (t2 == 0) {failed.push_back("1-4");};
 
   // Test 3: 3-6
   pinMode(p3, OUTPUT); digitalWrite(p3, LOW);
@@ -92,16 +94,21 @@ void setup() {
   bool t3 = digitalRead(p6);
   Serial.println(t3);
   pinMode(p3, INPUT); // release pin
+  if (t3 == 1) {failed.push_back("3-6");};
 
   leds[0] = CRGB(0, 255, 0);
 
-  if ((t1==1) && (t2==1)) {
-    if (t3==0) {
+  if (failed.empty()) {
     leds[0] = CRGB(0, 255, 0);
     FastLED.show();
-    Serial.println("pass");
-    }
+    Serial.println("PASS!");
+  } else {
+    Serial.print("FAIL:");
+    for(const std::string& s : failed) {
+    Serial.print(" ");
+    Serial.print(s.c_str());
   }
+  }// could deduct which pins work and which ones dont; if pin 1-3 fails but 1-2 passes, its obvious pin 3 is the issue
 }
 
 void loop() {
